@@ -1,0 +1,96 @@
+name: Build WoL Server for Multiple Platforms
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - platform: linux-x64
+            target: x86_64-linux-musl
+            binary_name: wol-server-linux-x64
+          - platform: linux-arm64
+            target: aarch64-linux-musl
+            binary_name: wol-server-linux-arm64
+          - platform: linux-armv7
+            target: armv7-linux-musleabihf
+            binary_name: wol-server-linux-armv7
+          - platform: linux-armv6
+            target: armv6-linux-musleabihf
+            binary_name: wol-server-linux-armv6
+          - platform: linux-riscv64
+            target: riscv64-linux-musl
+            binary_name: wol-server-linux-riscv64
+          - platform: windows-x64
+            target: x86_64-w64-mingw32
+            binary_name: wol-server-windows-x64.exe
+          - platform: darwin-x64
+            target: x86_64-apple-darwin
+            binary_name: wol-server-darwin-x64
+          - platform: darwin-arm64
+            target: aarch64-apple-darwin
+            binary_name: wol-server-darwin-arm64
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install cross-compilation toolchain
+      run: |
+        wget https://musl.cc/${TARGET}-cross.tgz
+        tar -xzf ${TARGET}-cross.tgz --strip-components=1 -C /usr/local
+        echo "/usr/local/bin" >> $GITHUB_PATH
+      env:
+        TARGET: ${{ matrix.target }}
+
+    - name: Build for ${{ matrix.platform }}
+      run: |
+        ${TARGET}-gcc -std=c99 -O2 -static -Wall -Wextra -o ${{ matrix.binary_name }} wol_server.c
+        # 检查文件类型
+        file ${{ matrix.binary_name }}
+        # 检查是否静态链接
+        ldd ${{ matrix.binary_name }} 2>/dev/null || echo "Static binary - no dependencies"
+      env:
+        TARGET: ${{ matrix.target }}
+
+    - name: Upload binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.platform }}
+        path: ${{ matrix.binary_name }}
+        retention-days: 30
+
+  create-release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: ./artifacts
+
+    - name: List artifacts
+      run: ls -la ./artifacts
+
+    - name: Create checksums
+      run: |
+        cd ./artifacts
+        find . -type f -name "wol-server-*" -exec sha256sum {} \; > SHA256SUMS.txt
+        cat SHA256SUMS.txt
+
+    - name: Upload release assets
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          ./artifacts/**/wol-server-*
+          ./artifacts/SHA256SUMS.txt
