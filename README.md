@@ -24,3 +24,6 @@ curl "http://你的服务器IP:8044/wol?mac=b6-6f-9c-cc-d7-99&ip=192.168.31.255"
 
 ###  本地编译
 gcc -std=c99 -O2 -static -o wol-server wol_server.c
+
+### 抓包
+tcpdump -i any -n -X udp port 9
