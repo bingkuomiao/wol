@@ -14,8 +14,8 @@
 ```bash
 ./deploy.sh 你的服务器IP
 # 下载对应架构的二进制文件
-chmod +x wol-server-linux-*
-./wol-server-linux-*
+chmod +x wol-server*
+./wol-server*
 ```
 ###  Web 界面
 访问 http://你的服务器IP:8044
@@ -27,3 +27,15 @@ gcc -std=c99 -O2 -static -o wol-server wol_server.c
 
 ### 抓包
 tcpdump -i any -n -X udp port 9
+
+### 自定义端口
+# 使用默认端口
+./wol_server*
+
+# 使用指定端口
+./wol_server* -p 8044
+./wol_server* --port 8044
+
+# 显示帮助信息
+./wol_server* -h
+./wol_server* --help
