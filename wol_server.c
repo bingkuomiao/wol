@@ -12,7 +12,7 @@
 #define BUFFER_SIZE 4096
 
 // 发送WoL魔术包
-int send_wol_packet(const char *mac_str, const char *ip_str, int port) {
+int send_wol_packet(const char *mac_str, const char *ip_str) {
     int sockfd;
     struct sockaddr_in dest_addr;
     unsigned char packet[102];
@@ -47,7 +47,7 @@ int send_wol_packet(const char *mac_str, const char *ip_str, int port) {
     // 设置目标地址
     memset(&dest_addr, 0, sizeof(dest_addr));
     dest_addr.sin_family = AF_INET;
-    dest_addr.sin_port = htons(port);
+    dest_addr.sin_port = htons(9);
     
     if (inet_pton(AF_INET, ip_str, &dest_addr.sin_addr) <= 0) {
         close(sockfd);
@@ -85,40 +85,17 @@ void url_decode(char *dst, const char *src) {
     *dst = '\0';
 }
 
-// 解析查询参数
-char* get_param_value(const char *query, const char *param) {
-    char *query_copy = strdup(query);
-    char *token, *saveptr = NULL;
-    char *result = NULL;
-    
-    token = strtok_r(query_copy, "&", &saveptr);
-    while (token) {
-        char *eq = strchr(token, '=');
-        if (eq) {
-            *eq = '\0';
-            if (strcmp(token, param) == 0) {
-                result = strdup(eq + 1);
-                break;
-            }
-        }
-        token = strtok_r(NULL, "&", &saveptr);
-    }
-    
-    free(query_copy);
-    return result;
-}
-
 // 发送HTTP响应
-void send_response(int client_fd, int status, const char *content_type, const char *body) {
+void send_response(int client_fd, const char *body, const char *content_type) {
     char header[512];
     int header_len = snprintf(header, sizeof(header),
-        "HTTP/1.1 %d OK\r\n"
+        "HTTP/1.1 200 OK\r\n"
         "Content-Type: %s\r\n"
         "Content-Length: %zu\r\n"
         "Access-Control-Allow-Origin: *\r\n"
         "Access-Control-Allow-Methods: GET, OPTIONS\r\n"
         "Connection: close\r\n\r\n",
-        status, content_type, strlen(body));
+        content_type, strlen(body));
     
     send(client_fd, header, header_len, 0);
     send(client_fd, body, strlen(body), 0);
@@ -127,37 +104,57 @@ void send_response(int client_fd, int status, const char *content_type, const ch
 // HTML页面
 const char* html_page = 
 "<!DOCTYPE html>"
-"<html>"
-"<head><meta charset=\"UTF-8\"><title>WoL Server</title>"
+"<html><head><meta charset=\"UTF-8\"><title>WoL Server</title>"
 "<style>"
-"body{font-family:Arial,sans-serif;margin:40px;background:#f0f0f0;}"
-".container{max-width:600px;margin:0 auto;background:white;padding:20px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.1);}"
-"h1{color:#333;text-align:center;}"
+"body{font-family:Arial,sans-serif;margin:20px;background:#f5f5f5;}"
+".container{max-width:500px;margin:0 auto;background:white;padding:20px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.1);}"
+"h1{color:#333;text-align:center;margin-bottom:20px;}"
 ".form-group{margin-bottom:15px;}"
-"label{display:block;margin-bottom:5px;font-weight:bold;}"
-"input{width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;}"
-"button{background:#007cba;color:white;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;width:100%;}"
-".result{margin-top:15px;padding:10px;border-radius:4px;}"
+"label{display:block;margin-bottom:5px;font-weight:bold;color:#555;}"
+"input{width:100%;padding:10px;border:1px solid #ddd;border-radius:4px;box-sizing:border-box;}"
+"button{background:#007cba;color:white;border:none;padding:12px;border-radius:4px;cursor:pointer;width:100%;font-size:16px;font-weight:bold;}"
+"button:hover{background:#005a87;}"
+".result{margin-top:15px;padding:12px;border-radius:4px;display:none;}"
 ".success{background:#d4edda;border:1px solid #c3e6cb;color:#155724;}"
 ".error{background:#f8d7da;border:1px solid #f5c6cb;color:#721c24;}"
+".info{background:#d1ecf1;border:1px solid #bee5eb;color:#0c5460;margin-bottom:15px;}"
 "</style></head>"
 "<body><div class=\"container\">"
-"<h1>Wake-on-LAN Server</h1>"
-"<div class=\"form-group\"><label>MAC Address:</label><input type=\"text\" id=\"mac\" value=\"b6-6f-9c-cc-d7-99\"></div>"
-"<div class=\"form-group\"><label>IP Address:</label><input type=\"text\" id=\"ip\" value=\"192.168.31.255\"></div>"
-"<button onclick=\"sendWoL()\">Send WoL Packet</button>"
+"<h1>🔌 Wake-on-LAN Server</h1>"
+"<div class=\"info\">"
+"<strong>📋 使用说明：</strong><br>"
+"1. 填写目标设备的MAC地址<br>"
+"2. 填写广播IP地址（通常是子网广播地址）<br>"
+"3. 点击发送唤醒包"
+"</div>"
+"<div class=\"form-group\"><label>MAC地址：</label><input type=\"text\" id=\"mac\" placeholder=\"b6-6f-9c-cc-d7-99\" value=\"\"></div>"
+"<div class=\"form-group\"><label>IP地址：</label><input type=\"text\" id=\"ip\" placeholder=\"192.168.31.255\" value=\"\"></div>"
+"<button onclick=\"sendWoL()\">🚀 发送唤醒包</button>"
 "<div id=\"result\" class=\"result\"></div>"
-"<p><strong>Direct URL:</strong> /wol?mac=XX-XX-XX-XX-XX-XX&amp;ip=Y.Y.Y.Y</p>"
+"<div style=\"margin-top:20px;padding-top:15px;border-top:1px solid #eee;font-size:12px;color:#666;\">"
+"<strong>🌐 直接访问：</strong><br>"
+"<code>/wol?mac=XX-XX-XX-XX-XX-XX&amp;ip=Y.Y.Y.Y</code>"
+"</div>"
 "</div>"
 "<script>"
 "function sendWoL(){"
 "var mac=document.getElementById('mac').value;"
 "var ip=document.getElementById('ip').value;"
+"if(!mac||!ip){alert('请填写MAC地址和IP地址');return;}"
+"var btn=event.target;btn.disabled=true;btn.innerHTML='⏳ 发送中...';"
 "fetch('/wol?mac='+encodeURIComponent(mac)+'&ip='+encodeURIComponent(ip))"
 ".then(r=>r.json()).then(data=>{"
 "var r=document.getElementById('result');"
-"r.textContent=data.success?data.message:'Error: '+data.error;"
+"r.textContent=data.success?data.message:'错误: '+data.error;"
 "r.className='result '+(data.success?'success':'error');"
+"r.style.display='block';"
+"btn.disabled=false;btn.innerHTML='🚀 发送唤醒包';"
+"}).catch(err=>{"
+"var r=document.getElementById('result');"
+"r.textContent='请求失败: '+err;"
+"r.className='result error';"
+"r.style.display='block';"
+"btn.disabled=false;btn.innerHTML='🚀 发送唤醒包';"
 "});}"
 "</script></body></html>";
 
@@ -167,15 +164,21 @@ int main() {
     socklen_t addrlen = sizeof(addr);
     int opt = 1;
     
+    printf("🚀 WoL Server starting...\n");
+    
     // 创建socket
     server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd < 0) {
-        perror("socket");
+        perror("❌ socket failed");
         return 1;
     }
     
     // 设置选项
-    setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+        perror("❌ setsockopt failed");
+        close(server_fd);
+        return 1;
+    }
     
     // 绑定端口
     addr.sin_family = AF_INET;
@@ -183,24 +186,26 @@ int main() {
     addr.sin_port = htons(PORT);
     
     if (bind(server_fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-        perror("bind");
+        perror("❌ bind failed");
         close(server_fd);
         return 1;
     }
     
     // 监听
     if (listen(server_fd, 10) < 0) {
-        perror("listen");
+        perror("❌ listen failed");
         close(server_fd);
         return 1;
     }
     
-    printf("WoL Server running on port %d\n", PORT);
+    printf("✅ WoL Server running on port %d\n", PORT);
+    printf("📧 Web interface: http://localhost:%d\n", PORT);
+    printf("⏹️  Press Ctrl+C to stop\n");
     
     while (1) {
         client_fd = accept(server_fd, (struct sockaddr*)&addr, &addrlen);
         if (client_fd < 0) {
-            perror("accept");
+            perror("❌ accept failed");
             continue;
         }
         
@@ -213,48 +218,63 @@ int main() {
             
             // 处理OPTIONS预检请求
             if (strcmp(method, "OPTIONS") == 0) {
-                send_response(client_fd, 200, "text/plain", "");
+                send_response(client_fd, "", "text/plain");
             }
             // 处理WoL请求
             else if (strcmp(method, "GET") == 0) {
-                char *query = strchr(path, '?');
-                if (query) {
-                    *query++ = '\0';
-                }
-                
-                if (strcmp(path, "/wol") == 0 && query) {
-                    char *mac = get_param_value(query, "mac");
-                    char *ip = get_param_value(query, "ip");
-                    
-                    if (mac) {
-                        char decoded_mac[64], decoded_ip[64] = "255.255.255.255";
-                        url_decode(decoded_mac, mac);
-                        if (ip) {
-                            url_decode(decoded_ip, ip);
-                        }
+                if (strstr(path, "/wol?") != NULL) {
+                    char *query = strchr(path, '?');
+                    if (query) {
+                        query++; // 跳过'?'
                         
-                        int result = send_wol_packet(decoded_mac, decoded_ip, 9);
-                        char json[256];
+                        // 简单解析查询参数
+                        char *mac_start = strstr(query, "mac=");
+                        char *ip_start = strstr(query, "ip=");
                         
-                        if (result == 0) {
-                            snprintf(json, sizeof(json), 
-                                "{\"success\":true,\"message\":\"Sent to %s\",\"mac\":\"%s\",\"ip\":\"%s\"}",
-                                decoded_mac, decoded_mac, decoded_ip);
-                            send_response(client_fd, 200, "application/json", json);
-                            printf("WoL sent: %s -> %s\n", decoded_mac, decoded_ip);
+                        if (mac_start) {
+                            char mac[64] = {0};
+                            char ip[64] = "255.255.255.255";
+                            char decoded_mac[64] = {0};
+                            char decoded_ip[64] = {0};
+                            
+                            // 提取MAC地址
+                            sscanf(mac_start + 4, "%63[^&]", mac);
+                            url_decode(decoded_mac, mac);
+                            
+                            // 提取IP地址
+                            if (ip_start) {
+                                sscanf(ip_start + 3, "%63[^&]", ip);
+                                url_decode(decoded_ip, ip);
+                            }
+                            
+                            // 发送WoL包
+                            int result = send_wol_packet(decoded_mac, 
+                                ip_start ? decoded_ip : "255.255.255.255");
+                            
+                            char json[512];
+                            if (result == 0) {
+                                snprintf(json, sizeof(json), 
+                                    "{\"success\":true,\"message\":\"✅ 已发送唤醒包到 %s\",\"mac\":\"%s\",\"ip\":\"%s\"}",
+                                    decoded_mac, decoded_mac, 
+                                    ip_start ? decoded_ip : "255.255.255.255");
+                                send_response(client_fd, json, "application/json");
+                                printf("📤 WoL packet sent: MAC=%s, IP=%s\n", 
+                                    decoded_mac, ip_start ? decoded_ip : "255.255.255.255");
+                            } else {
+                                snprintf(json, sizeof(json), 
+                                    "{\"success\":false,\"error\":\"❌ 发送WoL包失败\"}");
+                                send_response(client_fd, json, "application/json");
+                                printf("❌ WoL packet failed: MAC=%s\n", decoded_mac);
+                            }
                         } else {
-                            send_response(client_fd, 500, "application/json", 
-                                "{\"success\":false,\"error\":\"Failed to send WoL packet\"}");
+                            send_response(client_fd, 
+                                "{\"success\":false,\"error\":\"❌ 缺少MAC地址参数\"}", 
+                                "application/json");
                         }
-                        
-                        free(mac);
-                        if (ip) free(ip);
-                    } else {
-                        send_response(client_fd, 400, "application/json", 
-                            "{\"success\":false,\"error\":\"MAC address required\"}");
                     }
                 } else {
-                    send_response(client_fd, 200, "text/html", html_page);
+                    // 返回HTML页面
+                    send_response(client_fd, html_page, "text/html");
                 }
             }
         }
