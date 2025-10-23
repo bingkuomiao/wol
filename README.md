@@ -1,31 +1,15 @@
-# WoL Server - Multi-platform Wake-on-LAN Server
+# WoL Server - ARM/x64 Wake-on-LAN Server
 
-A lightweight, cross-platform Wake-on-LAN server written in C.
+专为 ARM 和 x64 架构设计的轻量级网络唤醒服务器。
 
-## Features
+## 🎯 支持的平台
 
-- Zero dependencies (statically compiled)
-- Small binary size (~100KB)
-- Web interface for easy use
-- REST API for automation
-- Cross-platform support
+- **Linux x86_64** - 标准 64 位 Linux
+- **Linux ARM64** - ARMv8 / aarch64 设备
+- **Linux ARMv7** - ARMv7 设备（树莓派等）
 
-## Supported Platforms
+## 🚀 快速开始
 
-- Linux x86_64
-- Linux ARM64 (aarch64)
-- Linux ARMv7
-- Linux ARMv6
-- Linux RISC-V
-- Windows x64
-- macOS x64
-- macOS ARM64
-
-## Usage
-
-### Web Interface
-Access `http://your-server:8044/` for the web interface.
-
-### API
+### 自动部署
 ```bash
-curl "http://your-server:8044/wol?mac=b6-6f-9c-cc-d7-99&ip=192.168.31.255"
+./deploy.sh 你的服务器IP
