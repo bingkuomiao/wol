@@ -1,4 +1,4 @@
-name: Build WoL Server for Multiple Platforms
+name: Build WoL Server for ARM and x64
 
 on:
   push:
@@ -8,68 +8,84 @@ on:
   release:
     types: [published]
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - platform: linux-x64
-            target: x86_64-linux-musl
-            binary_name: wol-server-linux-x64
-          - platform: linux-arm64
-            target: aarch64-linux-musl
-            binary_name: wol-server-linux-arm64
-          - platform: linux-armv7
-            target: armv7-linux-musleabihf
-            binary_name: wol-server-linux-armv7
-          - platform: linux-armv6
-            target: armv6-linux-musleabihf
-            binary_name: wol-server-linux-armv6
-          - platform: linux-riscv64
-            target: riscv64-linux-musl
-            binary_name: wol-server-linux-riscv64
-          - platform: windows-x64
-            target: x86_64-w64-mingw32
-            binary_name: wol-server-windows-x64.exe
-          - platform: darwin-x64
-            target: x86_64-apple-darwin
-            binary_name: wol-server-darwin-x64
-          - platform: darwin-arm64
-            target: aarch64-apple-darwin
-            binary_name: wol-server-darwin-arm64
+env:
+  CFLAGS: "-std=c99 -O2 -static -Wall -Wextra"
 
+jobs:
+  build-linux-x64:
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Install cross-compilation toolchain
+    - name: Install native compiler
       run: |
-        wget https://musl.cc/${TARGET}-cross.tgz
-        tar -xzf ${TARGET}-cross.tgz --strip-components=1 -C /usr/local
-        echo "/usr/local/bin" >> $GITHUB_PATH
-      env:
-        TARGET: ${{ matrix.target }}
+        sudo apt update
+        sudo apt install -y gcc-multilib
 
-    - name: Build for ${{ matrix.platform }}
+    - name: Build for Linux x86_64
       run: |
-        ${TARGET}-gcc -std=c99 -O2 -static -Wall -Wextra -o ${{ matrix.binary_name }} wol_server.c
-        # 检查文件类型
-        file ${{ matrix.binary_name }}
-        # 检查是否静态链接
-        ldd ${{ matrix.binary_name }} 2>/dev/null || echo "Static binary - no dependencies"
-      env:
-        TARGET: ${{ matrix.target }}
+        gcc $CFLAGS -o wol-server-linux-x64 wol_server.c
+        strip wol-server-linux-x64
+        file wol-server-linux-x64
+        ls -lh wol-server-linux-x64
 
     - name: Upload binary
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ matrix.platform }}
-        path: ${{ matrix.binary_name }}
-        retention-days: 30
+        name: linux-x64
+        path: wol-server-linux-x64
+
+  build-linux-arm64:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install ARM64 cross-compiler
+      run: |
+        sudo apt update
+        sudo apt install -y gcc-aarch64-linux-gnu
+
+    - name: Build for Linux ARM64
+      run: |
+        aarch64-linux-gnu-gcc $CFLAGS -o wol-server-linux-arm64 wol_server.c
+        aarch64-linux-gnu-strip wol-server-linux-arm64
+        file wol-server-linux-arm64
+        ls -lh wol-server-linux-arm64
+
+    - name: Upload binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: linux-arm64
+        path: wol-server-linux-arm64
+
+  build-linux-armv7:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install ARMv7 cross-compiler
+      run: |
+        sudo apt update
+        sudo apt install -y gcc-arm-linux-gnueabihf
+
+    - name: Build for Linux ARMv7
+      run: |
+        arm-linux-gnueabihf-gcc $CFLAGS -o wol-server-linux-armv7 wol_server.c
+        arm-linux-gnueabihf-strip wol-server-linux-armv7
+        file wol-server-linux-armv7
+        ls -lh wol-server-linux-armv7
+
+    - name: Upload binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: linux-armv7
+        path: wol-server-linux-armv7
 
   create-release:
-    needs: build
+    needs: [build-linux-x64, build-linux-arm64, build-linux-armv7]
     runs-on: ubuntu-latest
     if: github.event_name == 'release'
     
@@ -79,18 +95,36 @@ jobs:
       with:
         path: ./artifacts
 
-    - name: List artifacts
-      run: ls -la ./artifacts
-
-    - name: Create checksums
+    - name: Create release package
       run: |
-        cd ./artifacts
-        find . -type f -name "wol-server-*" -exec sha256sum {} \; > SHA256SUMS.txt
+        mkdir -p release
+        # 复制所有二进制文件到release目录
+        find ./artifacts -name "wol-server-*" -exec cp {} ./release/ \;
+        
+        # 创建校验和文件
+        cd ./release
+        sha256sum wol-server-* > SHA256SUMS.txt
+        
+        # 显示文件信息
+        echo "=== Release Files ==="
+        ls -la
+        echo "=== Checksums ==="
         cat SHA256SUMS.txt
+        
+        # 显示二进制信息
+        echo "=== Binary Info ==="
+        for bin in wol-server-*; do
+          if [ -f "$bin" ] && [ "$bin" != "SHA256SUMS.txt" ]; then
+            echo "=== $bin ==="
+            file "$bin"
+            echo "Size: $(du -h "$bin" | cut -f1)"
+            echo ""
+          fi
+        done
 
     - name: Upload release assets
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          ./artifacts/**/wol-server-*
-          ./artifacts/SHA256SUMS.txt
+          ./release/wol-server-*
+          ./release/SHA256SUMS.txt
