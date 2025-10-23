@@ -16,7 +16,7 @@
 # 下载对应架构的二进制文件
 chmod +x wol-server-linux-*
 ./wol-server-linux-*
-
+```
 ###  Web 界面
 访问 http://你的服务器IP:8044
 ###  API 调用
