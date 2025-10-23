@@ -1,4 +1,4 @@
-#define _GNU_SOURCE
+#define _GNU_SOURCE  // 启用GNU扩展，包括strdup等函数
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,7 +11,7 @@
 #include <signal.h>
 #include <ctype.h>
 
-#define PORT 8044
+#define DEFAULT_PORT 8044
 #define BUFFER_SIZE 4096
 #define MAGIC_PACKET_SIZE 102
 
@@ -287,11 +287,45 @@ void handle_request(int client_fd, const char *request) {
     }
 }
 
-int main() {
+// 显示使用帮助
+void print_usage(const char *program_name) {
+    printf("用法: %s [-p port]\n", program_name);
+    printf("选项:\n");
+    printf("  -p, --port PORT    指定服务器端口 (默认: %d)\n", DEFAULT_PORT);
+    printf("  -h, --help         显示此帮助信息\n");
+}
+
+int main(int argc, char *argv[]) {
     int server_fd, client_fd;
     struct sockaddr_in address;
     socklen_t addrlen = sizeof(address);
     int opt = 1;
+    int port = DEFAULT_PORT;
+    
+    // 解析命令行参数
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-p") == 0 || strcmp(argv[i], "--port") == 0) {
+            if (i + 1 < argc) {
+                port = atoi(argv[i + 1]);
+                if (port <= 0 || port > 65535) {
+                    fprintf(stderr, "错误: 端口号必须在1-65535之间\n");
+                    return 1;
+                }
+                i++; // 跳过下一个参数（端口值）
+            } else {
+                fprintf(stderr, "错误: %s 选项需要参数\n", argv[i]);
+                print_usage(argv[0]);
+                return 1;
+            }
+        } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
+            print_usage(argv[0]);
+            return 0;
+        } else {
+            fprintf(stderr, "错误: 未知选项 %s\n", argv[i]);
+            print_usage(argv[0]);
+            return 1;
+        }
+    }
     
     // 创建socket
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
@@ -308,7 +342,7 @@ int main() {
     
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons(PORT);
+    address.sin_port = htons(port);
     
     // 绑定端口
     if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
@@ -324,8 +358,8 @@ int main() {
         exit(EXIT_FAILURE);
     }
     
-    printf("WoL服务器 (C语言版本) 运行在端口 %d\n", PORT);
-    printf("访问 http://localhost:%d 使用Web界面\n", PORT);
+    printf("WoL服务器 (C语言版本) 运行在端口 %d\n", port);
+    printf("访问 http://localhost:%d 使用Web界面\n", port);
     printf("按 Ctrl+C 停止服务器\n");
     
     // 主循环
