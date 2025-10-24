@@ -87,9 +87,15 @@ jobs:
   create-release:
     needs: [build-linux-x64, build-linux-arm64, build-linux-armv7]
     runs-on: ubuntu-latest
-    # if: github.event_name == 'release'
+    if: github.event_name == 'release'
     
     steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+
     - name: Download all artifacts
       uses: actions/download-artifact@v4
       with:
@@ -127,7 +133,7 @@ jobs:
         # 创建wol目录
         mkdir -p wol
         
-        # 复制并重命名所有架构的二进制文件到wol目录，默认arm64架构
+        # 复制并重命名所有架构的二进制文件到wol目录
         #cp ./artifacts/linux-x64/wol-server-linux-x64 wol/wol-linux-x64
         cp ./artifacts/linux-arm64/wol-server-linux-arm64 wol/wol-linux-arm64
         #cp ./artifacts/linux-armv7/wol-server-linux-armv7 wol/wol-linux-armv7
@@ -147,7 +153,7 @@ jobs:
           echo "No changes to commit"
         else
           git commit -m "Auto-update: Build latest binaries for multiple architectures"
-          git push origin ${{ github.ref }}
+          git push
         fi
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
