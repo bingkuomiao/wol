@@ -135,7 +135,7 @@ jobs:
         
         # 复制并重命名所有架构的二进制文件到wol目录
         # cp ./artifacts/linux-x64/wol-server-linux-x64 wol/wol-linux-x64
-        cp ./artifacts/linux-arm64/wol-server-linux-arm64 wol/wol-linux-arm64
+        cp ./artifacts/linux-arm64/wol-server-linux-arm64 wol/wol
         # cp ./artifacts/linux-armv7/wol-server-linux-armv7 wol/wol-linux-armv7
         
         # 设置文件可执行权限
