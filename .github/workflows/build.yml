@@ -87,7 +87,7 @@ jobs:
   create-release:
     needs: [build-linux-x64, build-linux-arm64, build-linux-armv7]
     runs-on: ubuntu-latest
-   # if: github.event_name == 'release'
+    # if: github.event_name == 'release'
     
     steps:
     - name: Checkout repository
@@ -134,9 +134,9 @@ jobs:
         mkdir -p wol
         
         # 复制并重命名所有架构的二进制文件到wol目录
-        #cp ./artifacts/linux-x64/wol-server-linux-x64 wol/wol-linux-x64
+        # cp ./artifacts/linux-x64/wol-server-linux-x64 wol/wol-linux-x64
         cp ./artifacts/linux-arm64/wol-server-linux-arm64 wol/wol-linux-arm64
-        #cp ./artifacts/linux-armv7/wol-server-linux-armv7 wol/wol-linux-armv7
+        # cp ./artifacts/linux-armv7/wol-server-linux-armv7 wol/wol-linux-armv7
         
         # 设置文件可执行权限
         chmod +x wol/wol-*
@@ -159,17 +159,17 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
     - name: Create tar.gz archive
-        run: |
-          # 使用 commit SHA 前7位作为文件名
-          SHORT_SHA="${GITHUB_SHA:0:7}"
-          tar -czf "build_${SHORT_SHA}.tar.gz" wol/
+      run: |
+        # 使用 commit SHA 前7位作为文件名
+        SHORT_SHA="${GITHUB_SHA:0:7}"
+        tar -czf "build_${SHORT_SHA}.tar.gz" wol/
 
     - name: Create and Upload release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: build-${{ github.sha }}
-          name: Build ${{ github.sha }}
-          body: "Automatically generated build - Commit: ${{ github.sha }}"
-          files: build_*.tar.gz
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: build-${{ github.sha }}
+        name: Build ${{ github.sha }}
+        body: "Automatically generated build - Commit: ${{ github.sha }}"
+        files: build_*.tar.gz
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
