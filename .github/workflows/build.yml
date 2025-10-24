@@ -158,9 +158,21 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
-    - name: Upload release assets
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
+    - name: Create tar.gz archive
+        run: |
+          # 使用 commit SHA 前7位作为文件名
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          tar -czf "build_${SHORT_SHA}.tar.gz" wol/
+
+    - name: Create and Upload release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
           ./release/wol-server-*
           ./release/SHA256SUMS.txt
+          tag_name: build-${{ github.sha }}
+          name: Build ${{ github.sha }}
+          body: "Automatically generated build - Commit: ${{ github.sha }}"
+          files: build_*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
