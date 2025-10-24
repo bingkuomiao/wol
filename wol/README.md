@@ -14,3 +14,5 @@ http://192.168.31.1:8044/wol?mac=b6:6f:9c:cc:d7:99&ip=192.168.31.255
 http://192.168.31.1:8044/wol?mac=b6-6f-9c-cc-d7-99&ip=192.168.31.255
 ### 代码仓库:
 https://github.com/bingkuomiao/wol
+### 抓包:
+tcpdump -i any -n -X udp port 9
