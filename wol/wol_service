@@ -1,0 +1,31 @@
+#!/bin/sh /etc/rc.common
+
+USE_PROCD=1
+START=99 #boot level 
+STOP=01
+
+PROG=/data/wol/wol
+LOG=/tmp/wol
+PORT=8044
+
+start_service() {
+
+    procd_open_instance
+    procd_set_param command $PROG --port $PORT
+    procd_set_param stdout 0
+    procd_set_param stderr 0
+    procd_set_param respawn 3600 60 10 #异常失败边界值1小时，失败重启间隔60s，失败重启次数10
+    procd_close_instance 
+    mkdir -p /tmp/wol
+    echo [INFO][`date`] --- "Wol 已启动!!!" >> $LOG/wol.log
+}
+
+stop_service() {
+    echo [INFO][`date`] --- "Wol 已停止!!!" >> $LOG/wol.log
+    rm -f $LOG/wol.log
+}
+
+reload_service() {
+    stop
+    start
+}

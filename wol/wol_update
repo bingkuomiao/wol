@@ -1,0 +1,76 @@
+#!/bin/sh
+
+# eg. start mobai pc:
+# curl http://localhost:8044
+# MOBAI PC开机必须带ip=192.168.31.255,其他不行
+# curl http://192.168.31.1:8044/wol?mac=20-6a-8a-59-56-f8&ip=192.168.31.255
+
+# URL=https://github.com/bingkuomiao/wol/actions
+#URL=http://192.168.31.52:5244/d/网络存储/惊雷阿里/分享云盘/download/wol/wol
+WOl=/data/wol
+LOG=/tmp/wol
+PORT=8044
+
+# 文件日志
+log(){
+    if [[ ! -d "${LOG}" ]]; then
+        mkdir -p ${LOG}
+    fi
+    echo "$1"
+    echo [INFO][`date`] --- "$1" >> ${LOG}/wol.log
+}
+
+# 文件检查
+if [[ ! -d "${WOl}" ]]; then
+    mkdir -p ${WOl}
+fi
+
+# 进程检查
+if [[ `pidof wol` ]]; then
+   # curl http://localhost:${PORT} >> ${LOG}/wol.log
+    log "WOL daemon is already exist!"
+    exit
+fi
+
+# 文件下载
+if [[ ! -f "${WOl}/wol" ]]; then
+    #wget -cP ${WOl} ${URL}  2>&1 | tee ${LOG}/wol.log
+    #sleep 1 && sync
+
+    # github下载使用,去armbian压缩
+    # upx ${WOl}/WolGoWeb_linux_arm64 -o  ${WOl}/wol 
+    #if [ ! -n "`grep 100% ${LOG}/wol.log`" ]; then
+    #    log "WOL download failed!"
+    #    exit
+    #fi
+    #chmod u+x ${WOl}/wol*
+    log "WOL file can not find!"
+    exit
+fi
+chmod u+x ${WOl}/wol*
+
+# 端口占用
+if [ ! -z "$(netstat -pltn | grep :${PORT})" ]; then
+    # 输出占用端口的进程ID
+    log "Port ${PORT} is being used by the following processes:"
+    netstat -pltn | grep :${PORT}
+    exit
+fi
+
+# 进程启动
+if [[ -f "/etc/init.d/wol" ]]; then  
+    /etc/init.d/wol start
+    sleep 1 && sync
+    log "WOL server is started!"
+else
+    # 必须进入${WOl}工作目录,否则失败
+    cd ${WOl} &&./wol --port ${PORT} &
+    sleep 1 && sync
+    log "WOL ${PORT} is started! The pid:"
+fi
+
+# 监听端口
+pidof wol
+netstat -pltn|grep wol
+#curl http://localhost:${PORT}
+
