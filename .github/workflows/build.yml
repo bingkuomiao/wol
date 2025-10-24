@@ -87,7 +87,7 @@ jobs:
   create-release:
     needs: [build-linux-x64, build-linux-arm64, build-linux-armv7]
     runs-on: ubuntu-latest
-    if: github.event_name == 'release'
+    # if: github.event_name == 'release'
     
     steps:
     - name: Download all artifacts
