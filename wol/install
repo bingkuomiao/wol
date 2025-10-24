@@ -1,0 +1,43 @@
+#!/bin/sh
+
+# 手动下载文件
+URL=http://192.168.31.52:5244/d/网络存储/阿里云盘/分享盘/download/wol
+WOl=/data/wol
+LOG=/tmp/wol
+
+# 日志管理
+rm -rf ${LOG} && mkdir ${LOG}
+
+# 进程检查
+if [[ `pidof wol` ]]; then
+   # curl http://localhost:${PORT} >> ${LOG}/wol.log
+    killall wol
+fi
+
+if [[ ! -d "/usr/share/zoneinfo" ]]; then
+    mv zoneinfo /usr/share/
+else
+    rm -rf zoneinfo
+fi
+
+if [[ -z "$(grep "zonename" /etc/config/system)" ]]; then
+    sed -i "5a\        option zonename 'Asia/Shanghai'" /etc/config/system
+    /etc/init.d/system restart
+fi
+
+# 定时更新
+if [[ -z "$(grep "wol" /etc/crontabs/root)" ]]; then
+    echo "*/10 * * * * test -z "$(pidof wol)" && ${WOl}/wol_update >/dev/null 2>&1" >> /etc/crontabs/root
+fi
+
+# 服务配置
+cp wol_service /etc/init.d/wol
+
+# 下载文件
+sh ${WOl}/wol_update
+
+# wol开机自启
+/etc/init.d/wol enable
+echo [INFO][`date`] --- "Wol 初始化!!!" >> /tmp/wol/wol.log
+
+#rm install
