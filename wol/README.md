@@ -1,3 +1,4 @@
+## 对应架构的可执行文件重新命名为wol放入wol目录下
 ### 定时任务
 每10分钟检查一次 wol 进程是否在运行，如果该进程不存在，就执行 /data/wol/wol_update 脚本，并且不保留任何输出日志
 */10 * * * * test -z "$(pidof wol)" && /data/wol/wol_update >/dev/null 2>&1
