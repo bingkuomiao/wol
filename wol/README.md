@@ -16,3 +16,7 @@ http://192.168.31.1:8044/wol?mac=b6-6f-9c-cc-d7-99&ip=192.168.31.255
 https://github.com/bingkuomiao/wol
 ### 抓包:
 tcpdump -i any -n -X udp port 9
+### 业务操作：
+/etc/init.d/wol start
+/etc/init.d/wol stop
+/etc/init.d/wol reload
