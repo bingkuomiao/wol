@@ -121,7 +121,37 @@ jobs:
             echo ""
           fi
         done
-
+        
+    - name: Commit and push out files
+      run: |
+        # 创建wol目录
+        mkdir -p wol
+        
+        # 复制并重命名所有架构的二进制文件到wol目录，默认arm64架构
+        #cp ./artifacts/linux-x64/wol-server-linux-x64 wol/wol-linux-x64
+        cp ./artifacts/linux-arm64/wol-server-linux-arm64 wol/wol-linux-arm64
+        #cp ./artifacts/linux-armv7/wol-server-linux-armv7 wol/wol-linux-armv7
+        
+        # 设置文件可执行权限
+        chmod +x wol/wol-*
+        
+        # 配置git
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        
+        # 添加所有wol目录下的文件
+        git add wol/
+        
+        # 提交更改
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "Auto-update: Build latest binaries for multiple architectures"
+          git push origin ${{ github.ref }}
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
     - name: Upload release assets
       uses: softprops/action-gh-release@v1
       with:
