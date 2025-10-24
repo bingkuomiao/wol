@@ -167,9 +167,6 @@ jobs:
     - name: Create and Upload release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-          ./release/wol-server-*
-          ./release/SHA256SUMS.txt
           tag_name: build-${{ github.sha }}
           name: Build ${{ github.sha }}
           body: "Automatically generated build - Commit: ${{ github.sha }}"
