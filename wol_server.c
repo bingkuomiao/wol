@@ -142,7 +142,7 @@ void send_json_response(int client_fd, int status_code, const char *json) {
     send_response(client_fd, status_code, "application/json", json);
 }
 
-/ HTML页面内容
+// HTML页面内容
 const char* get_html_page() {
     return 
     "<!DOCTYPE html>"
